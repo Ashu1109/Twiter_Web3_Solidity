@@ -160,5 +160,32 @@ describe("TwitterAccount", function () {
       const tweet = await accountContract.getTweet(1);
       expect(tweet.isDeleted).to.equal(true);
     });
+
+    it("Should return empty TwitterUser for unregistered address", async function () {
+      const { accountContract, acc2 } = await loadFixture(
+        deployedTwitterAccount
+      );
+      // acc2 has not registered
+      const user = await accountContract.getUserByAddress(acc2.address);
+      expect(user.userAddress).to.equal(ethers.ZeroAddress);
+      expect(user.username).to.equal("");
+      expect(user.bio).to.equal("");
+      expect(user.tweets.length).to.equal(0);
+    });
+
+    it("Should return correct TwitterUser for registered address", async function () {
+      const { accountContract, tokenContract, acc1 } = await loadFixture(
+        deployedTwitterAccount
+      );
+      await tokenContract
+        .connect(acc1)
+        .approve(accountContract.target, ethers.parseEther("1000"));
+      await accountContract.connect(acc1).registerUser("alice", "bio");
+      const user = await accountContract.getUserByAddress(acc1.address);
+      expect(user.userAddress).to.equal(acc1.address);
+      expect(user.username).to.equal("alice");
+      expect(user.bio).to.equal("bio");
+      expect(user.tweets.length).to.equal(0);
+    });
   });
 });

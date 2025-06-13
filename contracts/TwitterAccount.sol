@@ -145,6 +145,17 @@ contract TwitterAccount {
     function getUserByAddress(
         address _user
     ) public view returns (TwitterUser memory) {
-        return users[_user];
+        TwitterUser storage user = users[_user];
+        if (bytes(user.username).length == 0) {
+            // User not present, return empty TwitterUser
+            return
+                TwitterUser({
+                    userAddress: address(0),
+                    username: "",
+                    bio: "",
+                    tweets: new Tweet[](0)
+                });
+        }
+        return user;
     }
 }
