@@ -13,7 +13,7 @@ contract TokenFaucet {
         token = IERC20(_tokenAddress);
     }
 
-    function claimTokens() public {
+    function claimTokens() external {
         require(!hasClaimed[msg.sender], "Already claimed");
         hasClaimed[msg.sender] = true;
         uint256 amount = 100 * 10 ** 18;
@@ -24,7 +24,8 @@ contract TokenFaucet {
         require(token.transfer(msg.sender, amount), "Transfer failed");
         emit TokensClaimed(msg.sender, amount);
     }
-    function getClaimStatus(address user) public view returns (bool) {
+
+    function getClaimStatus(address user) external view returns (bool) {
         return hasClaimed[user];
     }
 }

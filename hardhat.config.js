@@ -1,13 +1,16 @@
 require("@nomicfoundation/hardhat-toolbox");
 
+const PrivateKey =
+  "97b371f55d90f5272f7a89324e172dd290274ed0126cd8dff340bf7ee5739b24";
+
 module.exports = {
   solidity: "0.8.28",
   defaultNetwork: "sepolia",
   networks: {
     hardhat: {},
     sepolia: {
-      url: "https://sepolia.infura.io/v3/<key>",
-      accounts: [privateKey1, privateKey2],
+      url: "https://sepolia.infura.io/v3/ac9a163f8c744586a666d4a8da45e5b7",
+      accounts: [PrivateKey],
     },
   },
   solidity: {

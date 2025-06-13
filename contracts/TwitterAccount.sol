@@ -53,6 +53,9 @@ contract TwitterAccount {
         );
         _;
     }
+    function balanceOf(address _user) public view returns (uint256) {
+        return twitterToken.balanceOf(_user);
+    }
     function registerUser(string memory _username, string memory _bio) public {
         require(bytes(_username).length > 0, "Username cannot be empty");
         require(

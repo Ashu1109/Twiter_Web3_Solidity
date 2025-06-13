@@ -48,12 +48,13 @@ export async function loadBlockchainData() {
 
   // Get the user's address once to avoid multiple calls
   const address = await signer.getAddress();
+  const ownerAddress = await TokenContract.owner();
+  console.log("Owner Address:", ownerAddress);
 
-  // Get the user info
+  // Fetch user data from the Twitter contract
   const user = await TwitterContract.getUserByAddress(address);
 
   // Get the contract owner address
-  const ownerAddress = await TokenContract.owner();
 
   // Check if the current account is the owner
   const isOwner = ownerAddress.toLowerCase() === address.toLowerCase();

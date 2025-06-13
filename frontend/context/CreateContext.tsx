@@ -1,10 +1,18 @@
 "use client";
 import { loadBlockchainData } from "@/hooks/useLoadContract";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { ethers } from "ethers";
 
 const Context = createContext<{
   isOwner: boolean;
+  UpdateBalance: () => Promise<void>;
+  balance: string | null;
   user: [string, string, string, string[]] | undefined;
   setUser: React.Dispatch<
     React.SetStateAction<[string, string, string, string[]] | undefined>
@@ -19,6 +27,8 @@ const Context = createContext<{
 }>(
   {} as {
     isOwner: boolean;
+    UpdateBalance: () => Promise<void>;
+    balance: string | null;
     user: [string, string, string, string[]] | undefined;
     setUser: React.Dispatch<
       React.SetStateAction<[string, string, string, string[]] | undefined>
@@ -46,8 +56,29 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
     useState<ethers.Contract | null>(null);
   const [user, setUser] = useState<[string, string, string, string[]]>();
   const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [balance, setBalance] = useState<string | null>(null);
+
+  const UpdateBalance = useCallback(async () => {
+    // Only attempt to get balance if both TwitterContract and walletAddress are set
+    if (TwitterContract && walletAddress) {
+      try {
+        const balance = await TwitterContract.balanceOf(walletAddress);
+        setBalance(ethers.formatEther(balance));
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        setBalance(null);
+      }
+    } else {
+      // During initial loading, these values might not be set yet, so we don't need an error
+      setBalance(null);
+    }
+  }, [TwitterContract, walletAddress]);
+  useEffect(() => {
+    UpdateBalance();
+  }, [TwitterContract, walletAddress, UpdateBalance]);
 
   const loadData = async () => {
+    console.log("Loading blockchain data...");
     const {
       provider,
       signer,
@@ -83,6 +114,8 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
     <Context.Provider
       value={{
         isOwner,
+        UpdateBalance,
+        balance,
         user,
         setUser,
         walletAddress,
