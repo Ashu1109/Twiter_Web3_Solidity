@@ -11,6 +11,42 @@ interface Tweet {
   likeCount: bigint;
 }
 
+// Shape returned by the contract for each tweet
+type ContractTweet = {
+  id: bigint;
+  author: string;
+  content: string;
+  timestamp: bigint;
+  isDeleted: boolean;
+  likeCount: bigint;
+};
+
+// Convert any raw tweet shape (ethers Result or already normalized) to a plain object
+function normalizeTweet(raw: unknown): Tweet {
+  const r = raw as Partial<ContractTweet> &
+    Partial<Tweet> &
+    Record<string, unknown>;
+
+  const idAsNumber =
+    typeof r.id === "bigint" ? Number(r.id) : Number(r.id ?? 0);
+  const timestampAsNumber =
+    typeof r.timestamp === "bigint"
+      ? Number(r.timestamp)
+      : Number(r.timestamp ?? 0);
+  const likeCountAsBigInt =
+    typeof r.likeCount === "bigint"
+      ? r.likeCount
+      : BigInt((r.likeCount as number | string | undefined) ?? 0);
+
+  return {
+    id: idAsNumber,
+    author: (r.author as string) ?? "",
+    content: (r.content as string) ?? "",
+    timestamp: timestampAsNumber,
+    likeCount: likeCountAsBigInt,
+  };
+}
+
 const AllTweets = ({ refetchTweets }: { refetchTweets: boolean }) => {
   const { TwitterContract, walletAddress } = useUserContext();
   const [allTweets, setAllTweets] = React.useState<Tweet[]>([]);
@@ -30,9 +66,11 @@ const AllTweets = ({ refetchTweets }: { refetchTweets: boolean }) => {
 
       setLoading(true);
       try {
-        const tweets = await TwitterContract.getAllTweets();
+        const tweets = (await TwitterContract.getAllTweets()) as unknown[];
         console.log("Fetched tweets:", tweets);
-        setAllTweets(tweets);
+        // Normalize contract Result objects into plain objects to avoid losing fields on updates
+        const normalizedTweets: Tweet[] = tweets.map((t) => normalizeTweet(t));
+        setAllTweets(normalizedTweets);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching tweets:", error);
@@ -87,13 +125,14 @@ const AllTweets = ({ refetchTweets }: { refetchTweets: boolean }) => {
       const tx = await TwitterContract.likeTweet(tweetId);
       await tx.wait();
 
-      // Update the tweet in the UI
+      // Update the tweet in the UI (normalize before spreading to prevent field loss)
       setAllTweets((prevTweets) =>
-        prevTweets.map((tweet) =>
-          tweet.id === tweetId
-            ? { ...tweet, likeCount: tweet.likeCount + BigInt(1) }
-            : tweet
-        )
+        prevTweets.map((raw) => {
+          const t = normalizeTweet(raw);
+          return t.id === tweetId
+            ? { ...t, likeCount: t.likeCount + BigInt(1) }
+            : t;
+        })
       );
 
       // Update user's balance after successful like
@@ -159,9 +198,9 @@ const AllTweets = ({ refetchTweets }: { refetchTweets: boolean }) => {
         )}
 
       <div className="space-y-4">
-        {[...allTweets].reverse().map((tweet, index) => (
+        {[...allTweets].reverse().map((tweet) => (
           <div
-            key={index}
+            key={tweet.id}
             className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
           >
             <div className="flex items-start space-x-3">
@@ -223,7 +262,11 @@ const AllTweets = ({ refetchTweets }: { refetchTweets: boolean }) => {
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-5 w-5 mr-2"
-                          fill={tweet.likeCount > BigInt(0) ? "currentColor" : "none"}
+                          fill={
+                            tweet.likeCount > BigInt(0)
+                              ? "currentColor"
+                              : "none"
+                          }
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
